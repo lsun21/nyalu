@@ -8,26 +8,34 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## R Markdown
+```{r}
+# ucs - based on eye tracker location, if I need visual angel (millmeters)
+
+# acs - for eye gaze locatoin on the screen (millmeters)
+# (0,0) the left upper corner, (1,1) the right below corner, so the center should be (5,5)
+
+# microsecond to millisecond
+```
+
 
 
 ```{r pressure, echo=FALSE}
-file_path <- "Infant_WRT_SUB_130_Grant_eyeData_001.csv"
+file_path <- "~/Documents/R/Infant_WRT_SUB_130_Grant_eyeData_001.csv"
 tobii <- read.csv(file_path)
 
 library(tidyverse)
 
 left <- tobii %>%
   filter(left_validity <4) %>%
-  select(left_eye_ucs_x,left_eye_ucs_y,tet_musec)
+  select(left_gaze_acs_x,left_gaze_acs_y,tet_musec)
 
 
 right <- tobii %>%
   filter(right_validity <4) %>%
-  select(right_eye_ucs_x,right_eye_ucs_y,tet_musec)
+  select(right_gaze_acs_x,right_gaze_acs_y,tet_musec)
 
 
 ```
-
 
 ```{r}
 # gaze path for left and right eyes
@@ -35,13 +43,39 @@ ggplot(left,aes(left_eye_ucs_x,left_eye_ucs_y))+
   geom_path(lineed="butt",linejoin="round",linemitre=1)
 
 ggplot(right,aes(right_eye_ucs_x,right_eye_ucs_y))+
-  geom_path(lineed="butt",linejoin="round",linemitre=1)
+geom_path(lineed="butt",linejoin="round",linemitre=1)
+```
 
 
-ggplot(right,aes(right_eye_ucs_x,right_eye_ucs_y))+
-  geom_path(aes(colour= tet_musec))
+```{r}
+# use rowmeans and mutate to create a new combine
+
+comb <- merge(left,right,by="tet_musec")
+comb <- comb %>% mutate(time = tet_musec/1000)
+comb <- comb %>% mutate(mean_x = rowMeans(select(comb,left_gaze_acs_x, right_gaze_acs_x)), mean_y = rowMeans(select(comb,left_gaze_acs_y, right_gaze_acs_y)), ra.nm=TRUE)
+
+ggplot(comb,aes(mean_x,mean_y))+
+  geom_path(aes(colour= time))
+
+# convert to the Cartesian coordinate system
+ggplot(comb,aes(mean_x,mean_y))+
+  geom_path(aes(colour= time))+
+  coord_cartesian(ylim = c(1,0), xlim = c(0,1), expand=FALSE)
+
+# 
+ggplot(comb,aes(mean_x,mean_y))+
+  geom_path(aes(colour= time))+
+  scale_y_continuous(expand = c(1,0)) + scale_x_continuous(expand = c(0,1))
 
 ```
+
+```{r}
+# audio starts at 7896837.377 for tial 1 
+
+
+
+```
+
 
 
 ```{r}
