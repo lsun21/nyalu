@@ -1,2 +1,3 @@
 # nyalu
-haven fun with Hit
+haven fun with Git
+
