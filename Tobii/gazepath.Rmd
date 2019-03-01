@@ -1,0 +1,155 @@
+---
+title: "gazepath"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r pressure, echo=FALSE}
+file_path <- "Infant_WRT_SUB_130_Grant_eyeData_001.csv"
+tobii <- read.csv(file_path)
+
+library(tidyverse)
+
+left <- tobii %>%
+  filter(left_validity <4) %>%
+  select(left_eye_ucs_x,left_eye_ucs_y,tet_musec)
+
+
+right <- tobii %>%
+  filter(right_validity <4) %>%
+  select(right_eye_ucs_x,right_eye_ucs_y,tet_musec)
+
+
+```
+
+
+```{r}
+# gaze path for left and right eyes
+ggplot(left,aes(left_eye_ucs_x,left_eye_ucs_y))+
+  geom_path(lineed="butt",linejoin="round",linemitre=1)
+
+ggplot(right,aes(right_eye_ucs_x,right_eye_ucs_y))+
+  geom_path(lineed="butt",linejoin="round",linemitre=1)
+
+
+ggplot(right,aes(right_eye_ucs_x,right_eye_ucs_y))+
+  geom_path(aes(colour= tet_musec))
+
+```
+
+
+```{r}
+ggplot(left,aes(left_eye_ucs_x,left_eye_ucs_y))+
+  geom_line(arrow= arrow())
+```
+
+```{r}
+ggplot(left,aes(left_eye_ucs_x,left_eye_ucs_y))+
+  geom_point()
+
+ggplot(right,aes(right_eye_ucs_x,right_eye_ucs_y))+
+  geom_point()
+```
+
+
+```{r}
+ggplot(left,aes(left_eye_ucs_x,left_eye_ucs_y))+
+  geom_jitter(stat="identity")
+```
+
+```{r}
+ggplot(left,aes(left_eye_ucs_x,left_eye_ucs_y))+
+  geom_bind2d(binwidth=c(0.1,0.1))
+
+
+
+stat_bin_2d(left, aes(left_eye4_ucs_x,left_eye_ucs_y), geom = "tile",
+  position = "identity")
+```
+
+
+```{r}
+combine <- merge(left,right,by="tet_musec")
+combine
+
+combine %>%
+  mutate(aa=((left_eye_ucs_x + right_eye_ucs_x)/2), bb=((left_eye_ucs_y + right_eye_ucs_y)/2))
+
+
+ggplot(combine,aes(combine[6,],combine[7,]))+
+  geom_point(na.rm=TRUE)
+
+
+ggplot(combine,aes_string("aa","bb"))+
+  geom_point(na.rm=TRUE)
+
+```
+
+```{r}
+# use rowmeans and mutate to create a new combine
+
+comb <- merge(left,right,by="tet_musec")
+comb <- comb %>% mutate(mean_x = rowMeans(select(comb,left_eye_ucs_x, right_eye_ucs_x)), mean_y = rowMeans(select(comb,left_eye_ucs_y, right_eye_ucs_y)), ra.nm=TRUE)
+
+ggplot(comb,aes(mean_x,mean_y))+
+  geom_path(aes(colour= tet_musec))+
+  
+
+
+
+ggplot(comb)+
+  geom_point(aes_string("mean_x","mean_y"))
+
+```
+
+```{r}
+library(lattice)
+#https://stat.ethz.ch/R-manual/R-devel/library/lattice/html/levelplot.html
+#http://www.r-graph-gallery.com/78-levelplot-from-a-square-matrix/
+#https://www.r-bloggers.com/displaying-data-using-level-plots/
+
+leftdata <- data.matrix(left)
+levelplot(leftdata)
+
+
+leftdata <- data.matrix(left)
+levelplot(leftdata, col.regions = terrain.colors(100))
+
+
+rightdata <- data.matrix(right)
+levelplot(rightdata)
+
+
+
+```
+
+```{r}
+# heatmap example
+library(lattice)
+x <- seq(1,10, length.out=20)
+y <- seq(1,10, length.out=20)
+data <- expand.grid(X=x, Y=y)
+data$Z <- runif(400, 0, 5)
+
+data
+## Try it out
+par(mar=c(3,4,2,2))
+levelplot(Z ~ X*Y, data=data  , xlab="X" , col.regions = heat.colors(100)[length(heat.colors(100)):1]   , main="")
+
+```
+
+
+```{r}
+# heatmap example 2
+head(volcano)
+str(volcano)
+levelplot(volcano)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
