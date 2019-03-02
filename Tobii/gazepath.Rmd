@@ -40,7 +40,7 @@ right <- tobii %>%
 ```{r}
 # gaze path for left and right eyes
 ggplot(left,aes(left_eye_ucs_x,left_eye_ucs_y))+
-  geom_path(lineed="butt",linejoin="round",linemitre=1)
+  geom_path(lineed="butt",linejoin="round",linemitre=1),
 
 ggplot(right,aes(right_eye_ucs_x,right_eye_ucs_y))+
 geom_path(lineed="butt",linejoin="round",linemitre=1)
@@ -52,7 +52,7 @@ geom_path(lineed="butt",linejoin="round",linemitre=1)
 
 comb <- merge(left,right,by="tet_musec")
 comb <- comb %>% mutate(time = tet_musec/1000)
-comb <- comb %>% mutate(mean_x = rowMeans(select(comb,left_gaze_acs_x, right_gaze_acs_x)), mean_y = rowMeans(select(comb,left_gaze_acs_y, right_gaze_acs_y)), ra.nm=TRUE)
+comb <- comb %>% mutate(mean_x = rowMeans(select(comb,left_gaze_acs_x, right_gaze_acs_x)), mean_y = rowMeans(select(comb,left_gaze_acs_y, right_gaze_acs_y)))
 
 ggplot(comb,aes(mean_x,mean_y))+
   geom_path(aes(colour= time))
@@ -62,16 +62,26 @@ ggplot(comb,aes(mean_x,mean_y))+
   geom_path(aes(colour= time))+
   coord_cartesian(ylim = c(1,0), xlim = c(0,1), expand=FALSE)
 
-# 
+# reverse y axis and use the tobii coordinate system 
 ggplot(comb,aes(mean_x,mean_y))+
   geom_path(aes(colour= time))+
-  scale_y_continuous(expand = c(1,0)) + scale_x_continuous(expand = c(0,1))
+  coord_cartesian(ylim = c(1,0), xlim = c(0,1), expand=FALSE)+
+  scale_y_reverse()
 
 ```
 
 ```{r}
 # audio starts at 7896837.377 for tial 1 
+# add another column to track the gaze path 2 sec interval after label
+comb1 <- comb %>% mutate(labeling = ifelse(comb$time %in% 7896.837377:9896.837377,"Y","N"))
+comb1
 
+ggplot(comb1,aes(mean_x,mean_y))+
+  geom_path(aes(colour= time))+
+  coord_cartesian(ylim = c(1,0), xlim = c(0,1), expand=FALSE)+
+  scale_y_reverse()+
+  geom_point(colour = "pink")+
+  geom_point(aes(group=labeling))
 
 
 ```
