@@ -1,0 +1,150 @@
+---
+title: "Midterm presentation"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Infant's gaze heatmap for label trial
+
+```{r}
+# import data
+
+library(tidyverse)
+library(ggplot2)
+
+file_path <- "~/Documents/R/130/rawdata/Infant_WRT_SUB_130_Grant_eyeData_004.csv"
+tobii <- read.csv(file_path)
+
+left <- tobii %>%
+  filter(left_validity <4) %>%
+  select(left_gaze_acs_x,left_gaze_acs_y,tet_musec)
+
+
+right <- tobii %>%
+  filter(right_validity <4) %>%
+  select(right_gaze_acs_x,right_gaze_acs_y,tet_musec)
+
+# use rowmeans and mutate to create a new combine
+
+comb <- merge(left,right,by="tet_musec")
+comb <- comb %>% mutate(time = tet_musec/1000)
+comb <- comb %>% mutate(mean_x = rowMeans(select(comb,left_gaze_acs_x, right_gaze_acs_x)), mean_y = rowMeans(select(comb,left_gaze_acs_y, right_gaze_acs_y)))
+
+```
+
+## heatmap plot by raster
+
+
+```{r}
+
+ggplot(comb,aes(x=mean_x, y=mean_y)) +
+ stat_density_2d(aes(fill = ..density..), geom="raster", contour = FALSE)+
+ expand_limits(y = c(0, 1), x = c(0,1)) + 
+ coord_cartesian(ylim = c(0,1), xlim = c(0,1), expand=FALSE)+
+ scale_y_reverse()+
+ scale_fill_distiller(palette= "Spectral")+
+labs(title = "gaze heatmap in the label trial(car)", x = "x axis", y = "y axis")
+ 
+
+#gaze heatmap before label
+ggplot() +
+ stat_density_2d( data = comb %>% filter(time < 7896.837377),aes(x=mean_x, y=mean_y, fill = ..density..), geom="raster",  contour = FALSE)+
+ scale_y_reverse()+
+ scale_fill_distiller(palette= "Spectral")+ 
+ labs(title = "gaze heatmap before tone", x = "x axis", y = "y axis")+
+ expand_limits(y = c(0, 1), x = c(0,1))+
+ coord_cartesian(ylim = c(0.25,0.75), xlim = c(0,1), expand=FALSE)
+
+ggsave("gaze heatmap before tone.png")
+
+
+#gaze heatmap after label
+ggplot() +
+ stat_density_2d( data = comb %>% filter(time > 7896.837377),aes(x=mean_x, y=mean_y, fill = ..density..), geom="raster",  contour = FALSE)+
+ scale_y_reverse()+
+ scale_fill_distiller(palette= "Spectral")+
+ labs(title = "gaze heatmap after tone", x = "x axis", y = "y axis")+
+ expand_limits(y = c(0, 1), x = c(0,1))+
+ coord_cartesian(ylim = c(0.25,0.75), xlim = c(0,1), expand=FALSE)
+
+ggsave("gaze heatmap after tone.png")
+
+```
+
+
+## gaze pattern
+
+```{r}
+library(gganimate)
+library(gifski)
+library(png)
+library(jpeg)
+
+# audio starts at 32402739.81 for label trial (#4)
+  
+# create an additional layer for the 2s interval after labeling 
+comb2 <- comb %>% filter(between(time,32402.73981,34402.73981))
+
+ggplot(comb,aes(mean_x,mean_y))+
+  geom_path(color="blue")+
+  coord_cartesian(ylim = c(0,1), xlim = c(0,1), expand=FALSE)+
+  scale_y_reverse()+
+  geom_path(aes(x = mean_x, y = mean_y), data = comb2,color= "yellow")
+
+
+# load background 
+stimulus <- readJPEG("~/Documents/R/130/stimuli/Infant_WRT_SUB_130_Grant_scrCap_004.jpg", native=TRUE)
+
+# final plot
+ggplot(comb,aes(mean_x,mean_y))+
+  annotation_custom(rasterGrob(stimulus), xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf)+
+  coord_cartesian(ylim = c(0,1), xlim = c(0,1), expand=FALSE)+
+  scale_y_reverse()+
+  theme_dark()+
+  theme(panel.border = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())+
+  labs(title = "Child's gaze pattern in the label trial (car)",x = "x axis", y = "y axis")+
+  geom_path(color="blue")+
+  geom_path(aes(x = mean_x, y = mean_y), data = comb2,color= "yellow")
+
+ggsave("gaze pattern_label.png")
+
+# final gif
+ggplot(comb,aes(mean_x,mean_y))+
+  annotation_custom(rasterGrob(stimulus), xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf)+
+  coord_cartesian(ylim = c(0,1), xlim = c(0,1), expand=FALSE)+
+  scale_y_reverse()+
+  theme_dark()+
+  theme(panel.border = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())+
+  labs(title = "Child's gaze pattern in the label trial (car)", x = "x axis", y = "y axis")+
+  geom_path(color="blue")+
+  geom_path(aes(x = mean_x, y = mean_y), data = comb2,color= "yellow")+
+  transition_reveal(time)
+
+anim_save("label_background.gif")
+
+
+# make gif with title by frame 
+ggplot(comb,aes(mean_x,mean_y))+
+  annotation_custom(rasterGrob(stimulus), xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf)+
+  coord_cartesian(ylim = c(0,1), xlim = c(0,1), expand=FALSE)+
+  scale_y_reverse()+
+  theme_dark()+
+  theme(panel.border = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())+
+  labs(title = "Child's gaze pattern in the label trial (car): {frame}", x = "x axis", y = "y axis")+
+  geom_path(color="blue")+
+  geom_path(aes(x = mean_x, y = mean_y), data = comb2,color= "yellow")+
+  transition_reveal(time)
+
+anim_save("label_timebyframe.gif")
+
+```
+
