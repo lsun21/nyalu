@@ -1,0 +1,79 @@
+---
+title: "HMM model"
+output: html_document
+---
+
+## Data restructure 
+
+```{r}
+library(tidyverse)
+library(tidyr) 
+
+filenames <- list.files("~/Documents/R/csv_motion", full.names = TRUE)
+filenames
+
+# for trial "bear"; take the same number of row:1197
+p <- list()
+for (f in filenames){
+  df <- read.csv(f)
+  df <- subset(df,df$trial.trialnumber==5)
+  df <- df[1:1197,]
+  df <- select(df,childstrictgaze.strictgaze)
+  df <- data.frame(lapply(df, as.character), stringsAsFactors=FALSE)
+  p[[length(p)+1]] <-df
+}
+
+# transpose rows to column
+p2 <- list()
+for (i in 1:37){
+df <- as.data.frame(t(p[[i]]))
+p2[[i]] <- data.frame(lapply(df, as.character), stringsAsFactors=FALSE)
+}
+
+# combine to one dataframe
+p3 <- as.data.frame(bind_rows(p2))
+
+write.csv(p3,file="p3.csv")
+
+# drop row 16,29 due to numeric errors
+p4 <- p3[-c(16,29),]
+
+# fill empty as "no": represent no target looking
+p4 <- p4 %>% replace(.=="", "no")
+write.csv(p4, "bear.csv")
+
+
+# replace character 
+p5 <- p4
+p5[p5=="no"]<-0
+p5[p5=="f"]<-1
+p5[p5=="ch"]<-2
+p5[p5=="ph"]<-3
+p5[p5=="o"]<-4
+str(p5)
+
+
+p5[,1:1197] <- lapply(p5[,1:1197] , factor)
+str(p5)
+for (i in 1:1197){
+  levels(p5[,i]) <- c(0,1,2,3,4)
+}
+str(p5)
+
+
+```
+
+## TraMineR 
+```{r}
+# create a state sequences 
+library("seqHMM")
+
+hc_seq <- seqdef(p5[, 1:1197], start = 33, labels = c("no",
+"face", "child+hand", "parent+hand", "object"))
+
+sc_initmod_random <- build_hmm(observations = hc_seq, n_states = 1197)
+
+sc_fit <- fit_model(sc_initmod) #r-studio terminates after running the model and no respond for two hours
+
+```
+
